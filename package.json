@@ -1,0 +1,23 @@
+{
+  "name": "veb_skriptarnica",
+  "version": "1.0.0",
+  "description": "FTN Skriptarnica MERN stack application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node backend/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SofijaDjordjevic/Veb_Skriptarnica.git"
+  },
+  "author": "Sofija Djordjevic",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/SofijaDjordjevic/Veb_Skriptarnica/issues"
+  },
+  "homepage": "https://github.com/SofijaDjordjevic/Veb_Skriptarnica#readme",
+  "type": "module",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
