@@ -1,4 +1,4 @@
-**Web-Oriented Technologies and Systems**
+**Web-Oriented Technologies and Systems 2025/26**
 
 This project is being developed during the practical classes for the course "Web-Oriented Technologies and Systems" for groups 3 and 4.
 
