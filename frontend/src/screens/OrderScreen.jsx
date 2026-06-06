@@ -1,21 +1,22 @@
 import { useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+
 import {
   Row,
   Col,
   ListGroup,
   Image,
-  Card,
   Button,
+  Card,
 } from 'react-bootstrap';
+
+import { toast } from 'react-toastify';
 
 import {
   PayPalButtons,
   usePayPalScriptReducer,
 } from '@paypal/react-paypal-js';
-
-import { toast } from 'react-toastify';
 
 import Message from '../components/Message';
 import Loader from '../components/Loader';
@@ -24,6 +25,7 @@ import {
   useGetOrderDetailsQuery,
   usePayOrderMutation,
   useGetPaypalClientIdQuery,
+  useDeliverOrderMutation,
 } from '../slices/orderApiSlice';
 
 const OrderScreen = () => {
@@ -39,6 +41,11 @@ const OrderScreen = () => {
   const [payOrder, { isLoading: loadingPay }] =
     usePayOrderMutation();
 
+  const [
+    deliverOrder,
+    { isLoading: loadingDeliver },
+  ] = useDeliverOrderMutation();
+
   const [{ isPending }, paypalDispatch] =
     usePayPalScriptReducer();
 
@@ -48,11 +55,17 @@ const OrderScreen = () => {
     error: errorPayPal,
   } = useGetPaypalClientIdQuery();
 
-  const { userInfo } = useSelector((state) => state.auth);
+  const { userInfo } = useSelector(
+    (state) => state.auth
+  );
 
+  // LOAD PAYPAL SCRIPT
   useEffect(() => {
-    if (!errorPayPal && !loadingPayPal && paypal.clientId) {
-
+    if (
+      !errorPayPal &&
+      !loadingPayPal &&
+      paypal?.clientId
+    ) {
       const loadPaypalScript = async () => {
         paypalDispatch({
           type: 'resetOptions',
@@ -87,28 +100,30 @@ const OrderScreen = () => {
     paypalDispatch,
   ]);
 
-  // PAYPAL SUCCESS
+  // PAYPAL APPROVE
   async function onApprove(data, actions) {
-    return actions.order.capture().then(async function (details) {
-      try {
-        await payOrder({
-          orderId,
-          details,
-        }).unwrap();
+    return actions.order
+      .capture()
+      .then(async function (details) {
+        try {
+          await payOrder({
+            orderId,
+            details,
+          }).unwrap();
 
-        refetch();
+          refetch();
 
-        toast.success(
-          'Porudžbina je uspešno plaćena'
-        );
-      } catch (err) {
-        toast.error(
-          err?.data?.message ||
-            err.message ||
-            'Greška prilikom plaćanja porudžbine'
-        );
-      }
-    });
+          toast.success(
+            'Porudžbina je uspešno plaćena'
+          );
+        } catch (err) {
+          toast.error(
+            err?.data?.message ||
+              err.message ||
+              'Greška prilikom plaćanja porudžbine'
+          );
+        }
+      });
   }
 
   // TEST PAYMENT
@@ -154,10 +169,26 @@ const OrderScreen = () => {
           },
         ],
       })
-      .then((orderID) => {
-        return orderID;
-      });
+      .then((orderID) => orderID);
   }
+
+  // DELIVER ORDER (ADMIN)
+  const deliverOrderHandler = async () => {
+    try {
+      await deliverOrder(orderId).unwrap();
+      refetch();
+
+      toast.success(
+        'Porudžbina je označena kao dostavljena'
+      );
+    } catch (err) {
+      toast.error(
+        err?.data?.message ||
+          err.message ||
+          'Greška prilikom označavanja porudžbine kao dostavljene'
+      );
+    }
+  };
 
   return isLoading ? (
     <Loader />
@@ -170,6 +201,7 @@ const OrderScreen = () => {
       <h1>Porudžbina {order._id}</h1>
 
       <Row>
+
         {/* LEVA STRANA */}
         <Col md={8}>
           <ListGroup variant='flush'>
@@ -294,7 +326,6 @@ const OrderScreen = () => {
               </ListGroup.Item>
 
               <ListGroup.Item>
-
                 <Row>
                   <Col>Proizvodi</Col>
                   <Col>
@@ -322,27 +353,25 @@ const OrderScreen = () => {
                     {order.totalPrice.toFixed(2)} RSD
                   </Col>
                 </Row>
-
               </ListGroup.Item>
 
-              {/* PAYPAL PLAĆANJE */}
+              {/* PAYPAL */}
               {!order.isPaid && (
                 <ListGroup.Item>
-
                   {loadingPay && <Loader />}
 
                   {isPending ? (
                     <Loader />
                   ) : (
                     <div>
-
                       <Button
-                        type='button'
-                        className='btn btn-block'
                         onClick={onApproveTest}
-                        style={{ marginBottom: '10px' }}
+                        className='btn btn-block'
+                        style={{
+                          marginBottom: '10px',
+                        }}
                       >
-                        Test plaćanje
+                        Plati (test)
                       </Button>
 
                       <PayPalButtons
@@ -350,12 +379,27 @@ const OrderScreen = () => {
                         onApprove={onApprove}
                         onError={onError}
                       />
-
                     </div>
                   )}
-
                 </ListGroup.Item>
               )}
+
+              {/* ADMIN - DOSTAVA */}
+              {!order.isDelivered &&
+                userInfo &&
+                userInfo.isAdmin &&
+                order.isPaid && (
+                  <ListGroup.Item>
+                    {loadingDeliver && <Loader />}
+
+                    <Button
+                      className='btn btn-block'
+                      onClick={deliverOrderHandler}
+                    >
+                      Označi kao dostavljeno
+                    </Button>
+                  </ListGroup.Item>
+                )}
 
             </ListGroup>
           </Card>
